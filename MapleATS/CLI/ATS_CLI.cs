@@ -12,6 +12,9 @@ namespace MapleATS.CLI
     {
         public static void Start()
         {
+            // [옵저버 패턴] 캡처 영역 변경 감지 구독 (Subscribe)
+            AppMemory.Instance.OnCaptureAreaChanged += OnCaptureAreaUpdated;
+
             // 콘솔 창 크기를 가로 80자, 세로 20자로 설정
             try
             {
@@ -32,6 +35,18 @@ namespace MapleATS.CLI
 
             PrintWelcomeMessage();
             RunLoop();
+        }
+
+        /// <summary>
+        /// 옵저버 콜백: UI 스레드에서 캡처 영역이 설정되면 터미널(워커 스레드) 환경에 로그를 출력합니다.
+        /// </summary>
+        private static void OnCaptureAreaUpdated(System.Drawing.Rectangle rect)
+        {
+            Console.WriteLine(); // 현재 입력 줄 구분
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"[옵저버 알람 수신] 새로운 캡처 영역이 지정됨! (X:{rect.X}, Y:{rect.Y}, W:{rect.Width}, H:{rect.Height}) - 워커 스레드에서 비동기 처리 돌입 가능!");
+            Console.ResetColor();
+            Console.Write("ATS> "); // 프롬프트 다시 출력
         }
 
         private static void PrintWelcomeMessage()
@@ -157,7 +172,8 @@ namespace MapleATS.CLI
                 "키보드명령 생성 테스트",
                 "키입력 테스트",
                 "도움말 보기 (Help)",
-                "시스템 종료 (Exit)"
+                "시스템 종료 (Exit)",
+                "GUI 화면 캡처 테스트 열기"
             };
 
             int selectedIndex = CommandPalette.ShowMenu("ATS 명령어 팔레트", options);
@@ -190,6 +206,20 @@ namespace MapleATS.CLI
             {
                 Console.WriteLine("ATS CLI 시스템을 종료합니다...");
                 Environment.Exit(0);
+            }
+            else if (selectedIndex == 4)
+            {
+                Console.WriteLine("선택됨: GUI 화면 캡처 테스트 실행");
+                if (MainForm.instance != null)
+                {
+                    MainForm.instance.Invoke(new Action(() => {
+                        MainForm.instance.OnTestCaptureClick(null, EventArgs.Empty);
+                    }));
+                }
+                else
+                {
+                    Console.WriteLine("MainForm 인스턴스가 존재하지 않습니다.");
+                }
             }
             else
                 Console.WriteLine("메뉴 선택이 취소되었습니다.");
